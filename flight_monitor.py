@@ -374,6 +374,10 @@ def invia_telegram_calo(prezzo_nuovo, prezzo_vecchio, motivo, offerta=None):
     risparmio_totale = risparmio_per_persona * NUMERO_PASSEGGERI
     prezzo_totale = prezzo_nuovo * NUMERO_PASSEGGERI
     
+    extra = ""
+    if offerta:
+        extra = f"\n🌐 Sito: {offerta.get('sito')}\n🔗 Link: {offerta.get('link')}"
+
     messaggio = f"""📉 PREZZO SCESO! 📉
 
 ✈️ Aeromexico DIRETTO FCO→MEX
@@ -386,8 +390,7 @@ def invia_telegram_calo(prezzo_nuovo, prezzo_vecchio, motivo, offerta=None):
 💰 TOTALE x{NUMERO_PASSEGGERI}: €{prezzo_totale}
 🎯 RISPARMIO: €{risparmio_totale}
 
-🟢 Calo {motivo}!
-{f"\n🌐 Sito: {offerta.get('sito')}\n🔗 Link: {offerta.get('link')}" if offerta else ""}"""
+🟢 Calo {motivo}!{extra}"""
     
     invia_messaggio_telegram(messaggio)
 
