@@ -47,6 +47,7 @@ AMADEUS_API_SECRET = os.getenv('AMADEUS_API_SECRET')
 # Ascolto comandi Telegram (richieste manuali) e siti selezionati
 ASCOLTA_COMANDI_TELEGRAM = os.getenv('ASCOLTA_COMANDI_TELEGRAM', 'False').lower() == 'true'
 SITI_SELEZIONATI = os.getenv('SITI_SELEZIONATI', 'amadeus,google,skyscanner,kayak,aeromexico')
+INVIA_REPORT_SEMPRE = os.getenv('INVIA_REPORT_SEMPRE', 'False').lower() == 'true'
 
 # Cache semplice per token Amadeus
 _AMADEUS_TOKEN_CACHE = {
@@ -271,6 +272,22 @@ def analizza_risultati(risultato_ideale, prezzi_flessibili):
     
     if not tutti_prezzi:
         print("❌ Nessun prezzo trovato oggi")
+        if USA_TELEGRAM and INVIA_REPORT_SEMPRE:
+            ultimo = leggi_ultimo_prezzo()
+            righe = [
+                "📭 Nessun prezzo live dalle API.",
+                "📬 Ultimo prezzo noto e link utili:",
+                f"- Ultimo noto: €{int(ultimo) if ultimo != 999999 else '—'}",
+            ]
+            link_google = genera_link_offerta('Google Flights', PARTENZA, RITORNO, NUMERO_PASSEGGERI)
+            link_sky = genera_link_offerta('Skyscanner', PARTENZA, RITORNO, NUMERO_PASSEGGERI)
+            link_kayak = genera_link_offerta('Kayak', PARTENZA, RITORNO, NUMERO_PASSEGGERI)
+            link_am = genera_link_offerta('Aeromexico', PARTENZA, RITORNO, NUMERO_PASSEGGERI)
+            righe.append(f"- Google Flights: {link_google}")
+            righe.append(f"- Skyscanner: {link_sky}")
+            righe.append(f"- Kayak: {link_kayak}")
+            righe.append(f"- Aeromexico: {link_am}")
+            invia_messaggio_telegram("\n".join(righe))
         return
     
     # Ordina per prezzo migliore
@@ -281,6 +298,13 @@ def analizza_risultati(risultato_ideale, prezzi_flessibili):
     
     # Controlla se inviare notifiche
     controlla_e_invia_notifiche(prezzo_migliore, ultimo_prezzo_salvato)
+    
+    # Report riassuntivo se richiesto
+    if USA_TELEGRAM and INVIA_REPORT_SEMPRE:
+        righe = ["📬 Report controllo prezzi:"]
+        for p in tutti_prezzi[:5]:
+            righe.append(f"- {p.get('tipo','?')}: €{p['prezzo']} {p['partenza']}→{p['ritorno']} ({p.get('sito','?')})")
+        invia_messaggio_telegram("\n".join(righe))
     
     # Salva il nuovo prezzo
     salva_prezzo(prezzo_migliore['prezzo'], prezzo_migliore['tipo'])
